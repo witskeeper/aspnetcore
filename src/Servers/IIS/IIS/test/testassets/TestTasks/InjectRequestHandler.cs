@@ -14,7 +14,7 @@ namespace TestTasks
     {
         private const string aspnetcoreV2Name = "aspnetcorev2_inprocess.dll";
 
-        private static void Main(string[] args)
+        private static int Main(string[] args)
         {
             string depsFile = args[0];
             string rid = "";
@@ -58,7 +58,35 @@ namespace TestTasks
                 )));
                 var outputFolder = Path.GetDirectoryName(depsFile);
                 var bitnessString = rid.Substring(rid.Length - 3, 3);
-                File.Copy(Path.Combine(outputFolder, bitnessString, aspnetcoreV2Name), Path.Combine(outputFolder, aspnetcoreV2Name), overwrite: true);
+                var inputFile = Path.Combine(outputFolder, bitnessString, aspnetcoreV2Name);
+                if (!File.Exists(inputFile))
+                {
+                    var found = false;
+                    foreach (var file in Directory.EnumerateFiles(
+                        outputFolder,
+                        aspnetcoreV2Name,
+                        SearchOption.AllDirectories))
+                    {
+                        found = true;
+                        Console.WriteLine($"Found '{file}'");
+                    }
+
+                    if (!found)
+                    {
+                        foreach (var file in Directory.EnumerateFiles(
+                            Path.Combine(outputFolder, ".."),
+                            aspnetcoreV2Name,
+                            SearchOption.AllDirectories))
+                        {
+                            found = true;
+                            Console.WriteLine($"Retry found '{file}'");
+                        }
+                    }
+
+                    return 1;
+                }
+
+                File.Copy(inputFile, Path.Combine(outputFolder, aspnetcoreV2Name), overwrite: true);
             }
 
             targetLibrary =
@@ -83,6 +111,8 @@ namespace TestTasks
             {
                 deps.WriteTo(writer);
             }
+
+            return 0;
         }
     }
 }
